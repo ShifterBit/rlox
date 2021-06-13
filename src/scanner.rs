@@ -105,7 +105,7 @@ impl Scanner {
                 } else if c.is_alphabetic() {
                     self.identifier();
                 } else {
-                    Lox::error(self.line, &"Unexpected character".to_owned())
+                    Lox::error(self.line, "Unexpected character".to_owned())
                 }
             }
         }
@@ -169,7 +169,7 @@ impl Scanner {
             self.advance();
         }
         if self.at_end() {
-            Lox::error(self.line, &"Unterminated string.".to_owned());
+            Lox::error(self.line, "Unterminated string.".to_owned());
             return;
         }
 
