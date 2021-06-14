@@ -6,8 +6,7 @@ use std::env;
 use std::fs;
 use std::io;
 use std::process;
-use std::str;
-use token::{Token, TokenType};
+use token::Token;
 
 fn main() {
     let mut lox: Lox = Lox::new();
@@ -25,19 +24,19 @@ impl Lox {
 
     pub fn init(&mut self) {
         let args: Vec<String> = env::args().collect();
+        println!("args: {:#?}",args);
         if args.len() > 1 {
             println!("Usage: rlox [script]");
             process::exit(64);
-        } else if args.len() == 1 {
-            self.run_file(args[0].as_str());
+        } else if args.len() >= 2 {
+            self.run_file(&args[0])
         } else {
             self.run_prompt();
         }
     }
 
-    fn run_file(&self, path: &str) {
-        let bytes = fs::read(path).unwrap();
-        let string = str::from_utf8(&bytes).unwrap().to_owned();
+    fn run_file(&self, path: &String) {
+        let string = fs::read_to_string(path).expect("Error Reading File");
         self.run(string);
     }
 
@@ -49,6 +48,7 @@ impl Lox {
             println!("{}", token);
         }
     }
+
     fn run_prompt(&mut self) {
         loop {
             println!("> ");
@@ -67,6 +67,7 @@ impl Lox {
     fn error(line: i32, message: String) {
         Lox::report(line, "".to_owned(), message);
     }
+
     fn report(line: i32, location: String, message: String) {
         println!("[line {}] Error {}: {}", line, location, message);
     }
