@@ -1,45 +1,36 @@
-mod ast;
-mod scanner;
-mod token;
+pub mod ast;
+pub mod scanner;
+pub mod token;
 
-use ast::{BinaryOperator, Expr, UnaryOperator};
 use scanner::Scanner;
 use std::env;
 use std::fs;
 use std::io;
 use std::process;
-use token::{Token, TokenType};
-
-fn main() {
-    let mut lox: Lox = Default::default();
-    // lox.init();
-    let expression = Box::new(Expr::Binary(
-        Box::new(Expr::Unary(
-            UnaryOperator::Minus,
-            Box::new(Expr::Number(123.0)),
-        )),
-        BinaryOperator::Star,
-        Box::new(Expr::Grouping(Box::new(Expr::Number(45.67)))),
-    ));
-    println!("{:?}", expression);
-}
+use token::Token;
 
 #[derive(Default)]
-struct Lox {
+pub struct Lox {
     had_error: bool,
 }
+
 impl Lox {
-    fn init(&mut self) {
+    pub fn new() -> Self {
+        Lox { had_error: false }
+    }
+
+    pub fn init(&mut self) {
         let args: Vec<String> = env::args().collect();
         if args.len() > 1 {
             println!("Usage: rlox [script]");
             process::exit(64);
-        } else if args.len() == 1 {
+        } else if args.len() == 2 {
             self.run_file(&args[0]);
         } else {
             self.run_prompt();
         }
     }
+
     fn run_file(&self, path: &String) {
         let file = fs::read_to_string(path).unwrap();
         self.run(&file);
@@ -66,7 +57,7 @@ impl Lox {
         let tokens: Vec<Token> = scanner.scan_tokens();
 
         for token in tokens.iter() {
-            println!("{}", token);
+            println!("{:?}", token);
         }
     }
 
