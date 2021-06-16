@@ -1,28 +1,28 @@
 use crate::token::{Literal, Token, TokenType};
 use crate::Lox;
+use lazy_static::lazy_static;
 use std::char;
 use std::collections::HashMap;
-use lazy_static::lazy_static;
 
 lazy_static! {
     static ref KEYWORDS: HashMap<String, TokenType> = {
         let mut m = HashMap::new();
-        m.insert("and".to_owned(),    TokenType::And);
-        m.insert("class".to_owned(),  TokenType::Class);
-        m.insert("else".to_owned(),   TokenType::Else);
-        m.insert("false".to_owned(),  TokenType::False);
-        m.insert("for".to_owned(),    TokenType::For);
-        m.insert("fun".to_owned(),    TokenType::Fun);
-        m.insert("if".to_owned(),     TokenType::If);
-        m.insert("nil".to_owned(),    TokenType::Nil);
-        m.insert("or".to_owned(),     TokenType::Or);
-        m.insert("print".to_owned(),  TokenType::Print);
+        m.insert("and".to_owned(), TokenType::And);
+        m.insert("class".to_owned(), TokenType::Class);
+        m.insert("else".to_owned(), TokenType::Else);
+        m.insert("false".to_owned(), TokenType::False);
+        m.insert("for".to_owned(), TokenType::For);
+        m.insert("fun".to_owned(), TokenType::Fun);
+        m.insert("if".to_owned(), TokenType::If);
+        m.insert("nil".to_owned(), TokenType::Nil);
+        m.insert("or".to_owned(), TokenType::Or);
+        m.insert("print".to_owned(), TokenType::Print);
         m.insert("return".to_owned(), TokenType::Return);
-        m.insert("super".to_owned(),  TokenType::Super);
-        m.insert("this".to_owned(),   TokenType::This);
-        m.insert("true".to_owned(),   TokenType::True);
-        m.insert("var".to_owned(),    TokenType::Var);
-        m.insert("while".to_owned(),  TokenType::While);
+        m.insert("super".to_owned(), TokenType::Super);
+        m.insert("this".to_owned(), TokenType::This);
+        m.insert("true".to_owned(), TokenType::True);
+        m.insert("var".to_owned(), TokenType::Var);
+        m.insert("while".to_owned(), TokenType::While);
 
         m
     };
@@ -115,11 +115,16 @@ impl Scanner {
         while self.peek().is_alphanumeric() {
             self.advance();
         }
-        let text = self.source.chars().skip(self.start).take(self.current - self.start).collect::<String>();
+        let text = self
+            .source
+            .chars()
+            .skip(self.start)
+            .take(self.current - self.start)
+            .collect::<String>();
         let keyword_lookup = KEYWORDS.get(&text);
         let token_type = match keyword_lookup {
             Some(t) => t,
-            None => &TokenType::Identifier
+            None => &TokenType::Identifier,
         };
         self.add_token(token_type.to_owned());
     }
@@ -135,31 +140,31 @@ impl Scanner {
                 self.advance();
             }
         }
-            let value: Literal = Literal::Number(
-                self.source
-                    .chars()
-                    .skip(self.start)
-                    .take(self.current - self.start)
-                    .collect::<String>()
-                    .parse::<f64>()
-                    .unwrap(),
-            );
+        let value: Literal = Literal::Number(
+            self.source
+                .chars()
+                .skip(self.start)
+                .take(self.current - self.start)
+                .collect::<String>()
+                .parse::<f64>()
+                .unwrap(),
+        );
 
-            self.add_full_token(TokenType::Number, Some(value));
-        }
+        self.add_full_token(TokenType::Number, Some(value));
+    }
 
     fn match_(&mut self, expected: char) -> bool {
-          if self.at_end() {
-              return false;
-          }
+        if self.at_end() {
+            return false;
+        }
 
-          if self.source.chars().nth(self.current).unwrap() != expected {
-              return false;
-          }
+        if self.source.chars().nth(self.current).unwrap() != expected {
+            return false;
+        }
 
-          self.current += 1;
-          true
-      }
+        self.current += 1;
+        true
+    }
 
     fn string(&mut self) {
         while self.peek() != '"' && !self.at_end() {
