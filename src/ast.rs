@@ -1,33 +1,4 @@
-// ------------ Syntax Grammar ------------
-///
-// -------- EXPRESSIONS --------
-// expression     -> equality ;
-// equality       -> comparison ( ("!=" | "==" ) comparison )* ;
-// comparison     -> term ( (">" | ">=" | "<=" | "<" ) term )* ;
-// unary          -> ( "-" | "!" ) unary | primary ;
-// term           -> factor ( ("-" | "+") factor)* ;
-// factor         -> unary ( ("/" | "*") unary)* ;
-// primary        ->  NUMBER | String | "true" | "false" | "nil" | "(" expression ")" ;
-
-#[derive(Debug)]
-pub enum UnaryOperator {
-    Bang,
-    Minus,
-}
-
-#[derive(Debug)]
-pub enum BinaryOperator {
-    Slash,
-    Star,
-    Plus,
-    Minus,
-    Greater,
-    GreaterEqual,
-    Less,
-    LessEqual,
-    BangEqual,
-    EqualEqual,
-}
+use crate::token::{Literal, Token};
 
 #[derive(Debug)]
 pub enum Expr {
@@ -36,9 +7,10 @@ pub enum Expr {
     String(String),
     Boolean(bool),
     Nil,
+    Literal(Literal),
 
     // Compound Expressions
-    Binary(Box<Expr>, BinaryOperator, Box<Expr>),
-    Unary(UnaryOperator, Box<Expr>),
+    Binary(Box<Expr>, Token, Box<Expr>),
+    Unary(Token, Box<Expr>),
     Grouping(Box<Expr>),
 }
