@@ -3,10 +3,6 @@ use crate::token::{Literal, Token};
 #[derive(Debug)]
 pub enum Expr {
     // Literal Values
-    Number(f64),
-    String(String),
-    Boolean(bool),
-    Nil,
     Literal(Literal),
 
     // Compound Expressions

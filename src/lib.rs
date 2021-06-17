@@ -3,12 +3,13 @@ pub mod parser;
 pub mod scanner;
 pub mod token;
 
+use parser::{ParseError, Parser};
 use scanner::Scanner;
 use std::env;
 use std::fs;
 use std::io;
 use std::process;
-use token::Token;
+use token::{Token, TokenType};
 
 #[derive(Default)]
 pub struct Lox {
@@ -56,14 +57,31 @@ impl Lox {
     fn run(&self, source: &String) {
         let mut scanner: Scanner = Scanner::new(source.clone());
         let tokens: Vec<Token> = scanner.scan_tokens();
-
-        for token in tokens.iter() {
-            println!("{:?}", token);
+        let mut parser: Parser = Parser::new(tokens);
+        let expression = parser.parse();
+        if self.had_error {
+            return;
         }
+        println!("{:#?}", expression.unwrap());
+
+        // for token in tokens.iter() {
+        //     println!("{:?}", token);
+        // }
     }
 
     fn error(line: i32, message: String) {
         Lox::report(line, "".to_owned(), message);
+    }
+
+    fn parse_error(error: ParseError) {
+        match error.token.token_type {
+            TokenType::Eof => Lox::report(error.token.line, " at end".to_owned(), error.message),
+            _ => Lox::report(
+                error.token.line,
+                format!("at, {}", error.token.lexeme),
+                error.message,
+            ),
+        }
     }
 
     fn report(line: i32, location: String, message: String) {
