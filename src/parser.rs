@@ -22,10 +22,15 @@ impl Parser {
         Parser { current: 0, tokens }
     }
 
-    pub fn parse(&mut self) -> Result<Expr, ParseError> {
-        self.expression()
+    pub fn parse(&mut self) -> Option<Expr> {
+        match self.expression() {
+            Ok(expr) => Some(expr),
+            Err(error) => {
+                eprint!("{:#?}", error);
+                None
+            }
+        }
     }
-
     fn expression(&mut self) -> Result<Expr, ParseError> {
         self.equality()
     }
@@ -103,12 +108,14 @@ impl Parser {
 
         if self.match_(&vec![TokenType::LeftParen]) {
             let expr: Expr = self.expression()?;
-            self.consume(
+            let right_paren = self.consume(
                 self.peek().clone().token_type,
                 &"Expect ')' after expression.".to_owned(),
-            )
-            .unwrap();
-            return Ok(Expr::Grouping(Box::new(expr)));
+            );
+            match right_paren {
+                Ok(_) => return Ok(Expr::Grouping(Box::new(expr))),
+                Err(e) => return Err(e),
+            }
         }
 
         return Err(ParseError::new(

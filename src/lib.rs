@@ -1,4 +1,5 @@
 pub mod ast;
+pub mod interpreter;
 pub mod parser;
 pub mod scanner;
 pub mod token;
@@ -9,7 +10,7 @@ use std::env;
 use std::fs;
 use std::io;
 use std::process;
-use token::{Token, TokenType};
+use token::{Literal, Token, TokenType};
 
 #[derive(Default)]
 pub struct Lox {
@@ -22,11 +23,11 @@ impl Lox {
     }
 
     pub fn init(&mut self) {
-        let args: Vec<String> = env::args().collect();
+        let args: Vec<String> = env::args().skip(1).collect();
         if args.len() > 1 {
             println!("Usage: rlox [script]");
             process::exit(64);
-        } else if args.len() == 2 {
+        } else if args.len() == 1 {
             self.run_file(&args[0]);
         } else {
             self.run_prompt();
@@ -58,11 +59,11 @@ impl Lox {
         let mut scanner: Scanner = Scanner::new(source.clone());
         let tokens: Vec<Token> = scanner.scan_tokens();
         let mut parser: Parser = Parser::new(tokens);
-        let expression = parser.parse();
+        let expression = parser.parse().unwrap();
         if self.had_error {
             return;
         }
-        println!("{:#?}", expression.unwrap());
+        println!("{:#?}", expression);
 
         // for token in tokens.iter() {
         //     println!("{:?}", token);
