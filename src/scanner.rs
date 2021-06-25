@@ -173,19 +173,21 @@ impl Scanner {
             }
             self.advance();
         }
+
         if self.at_end() {
             Lox::error(self.line, "Unterminated string.".to_owned());
             return;
         }
 
         self.advance();
-        let value: Literal = Literal::String(
-            self.source
-                .chars()
-                .skip(self.start)
-                .take((self.current - 1) - (self.start + 1))
-                .collect::<String>(),
-        );
+        let text = self
+            .source
+            .chars()
+            .skip(self.start)
+            .take((self.current) - (self.start))
+            .collect::<String>();
+
+        let value: Literal = Literal::String(text.clone());
 
         self.add_full_token(TokenType::String, Some(value));
     }

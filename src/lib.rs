@@ -4,6 +4,7 @@ pub mod parser;
 pub mod scanner;
 pub mod token;
 
+use interpreter::{Interpreter, RuntimeError};
 use parser::{ParseError, Parser};
 use scanner::Scanner;
 use std::env;
@@ -15,11 +16,15 @@ use token::{Literal, Token, TokenType};
 #[derive(Default)]
 pub struct Lox {
     had_error: bool,
+    had_runtime_error: bool,
 }
 
 impl Lox {
     pub fn new() -> Self {
-        Lox { had_error: false }
+        Lox {
+            had_error: false,
+            had_runtime_error: false,
+        }
     }
 
     pub fn init(&mut self) {
@@ -34,11 +39,14 @@ impl Lox {
         }
     }
 
-    fn run_file(&self, path: &String) {
+    fn run_file(&mut self, path: &String) {
         let file = fs::read_to_string(path).unwrap();
         self.run(&file);
         if self.had_error {
             process::exit(65);
+        }
+        if self.had_runtime_error {
+            process::exit(70);
         }
     }
 
@@ -55,23 +63,46 @@ impl Lox {
         }
     }
 
-    fn run(&self, source: &String) {
+    fn run(&mut self, source: &String) {
         let mut scanner: Scanner = Scanner::new(source.clone());
         let tokens: Vec<Token> = scanner.scan_tokens();
-        let mut parser: Parser = Parser::new(tokens);
+        let mut parser: Parser = Parser::new(tokens.clone());
         let expression = parser.parse().unwrap();
         if self.had_error {
             return;
         }
-        println!("{:#?}", expression);
+        let interpreter = Interpreter::new();
+        let l = interpreter.interpret(self, &expression);
+        match l {
+            Some(l) => match l {
+                Literal::Bool(b) => {
+                    println!("{}", b);
+                }
+                Literal::Number(n) => {
+                    println!("{}", n);
+                }
+                Literal::String(s) => {
+                    println!("{}", s);
+                }
+                Literal::Nil => {
+                    println!("nil");
+                }
+            },
+            None => {}
+        };
 
-        // for token in tokens.iter() {
-        //     println!("{:?}", token);
-        // }
+        for token in tokens.iter() {
+            println!("{:?}", token);
+        }
     }
 
     fn error(line: i32, message: String) {
         Lox::report(line, "".to_owned(), message);
+    }
+
+    fn runtime_error(&mut self, error: RuntimeError) {
+        println!("{} \n [line {}]", error.message, error.token.line);
+        self.had_runtime_error = true;
     }
 
     fn parse_error(error: ParseError) {
