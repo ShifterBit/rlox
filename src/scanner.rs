@@ -186,8 +186,13 @@ impl Scanner {
             .skip(self.start)
             .take((self.current) - (self.start))
             .collect::<String>();
+        let text_without_quotes = text
+            .chars()
+            .skip(1)
+            .take(text.len() - 2)
+            .collect::<String>();
 
-        let value: Literal = Literal::String(text.clone());
+        let value: Literal = Literal::String(text_without_quotes.clone());
 
         self.add_full_token(TokenType::String, Some(value));
     }

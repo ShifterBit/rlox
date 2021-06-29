@@ -82,7 +82,7 @@ impl Lox {
                     println!("{}", n);
                 }
                 Literal::String(s) => {
-                    println!("{}", s);
+                    println!("\"{}\"", s);
                 }
                 Literal::Nil => {
                     println!("nil");
@@ -90,10 +90,6 @@ impl Lox {
             },
             None => {}
         };
-
-        for token in tokens.iter() {
-            println!("{:?}", token);
-        }
     }
 
     fn error(line: i32, message: String) {
