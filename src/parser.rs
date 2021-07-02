@@ -1,8 +1,17 @@
 use crate::ast::*;
 use crate::token::{Literal, Token, TokenType};
+use crate::Lox;
 
 // ------------ Syntax Grammar ------------
-///
+//
+//
+// -------- Program --------
+// program        -> statement* EOF
+// -------- Statements --------
+// statement        -> exprStmt
+//                   | printStmt
+// exprStmt         -> expression ";" ;
+// printStmt        -> "print" expression ";" ;
 // -------- EXPRESSIONS --------
 // expression     -> equality ;
 // equality       -> comparison ( ("!=" | "==" ) comparison )* ;
@@ -22,14 +31,71 @@ impl Parser {
         Parser { current: 0, tokens }
     }
 
-    pub fn parse(&mut self) -> Option<Expr> {
-        match self.expression() {
-            Ok(expr) => Some(expr),
-            Err(error) => {
-                eprint!("{:#?}", error);
+    pub fn parse(&mut self) -> Vec<Box<Stmt>> {
+        let mut statements: Vec<Box<Stmt>> = Vec::new();
+        while !self.at_end() {
+            match self.statement() {
+                Some(s) => statements.push(Box::new(s)),
+                None => {}
+            }
+        }
+
+        return statements;
+    }
+    fn statement(&mut self) -> Option<Stmt> {
+        match self.match_(&vec![TokenType::Print]) {
+            true => self.print_statement(),
+            _ => self.expression_statement(),
+        }
+    }
+    fn print_statement(&mut self) -> Option<Stmt> {
+        let value = self.expression();
+        match value {
+            Ok(e) => {
+                let semicolon_exists =
+                    self.consume(TokenType::Semicolon, &"Expect ';' after value.".to_owned());
+                match semicolon_exists {
+                    Ok(_) => return Some(Stmt::Print(Box::new(e))),
+                    Err(e) => {
+                        Lox::parse_error(e);
+                        None
+                    }
+                }
+            }
+
+            Err(e) => {
+                Lox::parse_error(e);
                 None
             }
         }
+    }
+
+    fn expression_statement(&mut self) -> Option<Stmt> {
+        let expr = self.expression();
+        match expr {
+            Ok(e) => {
+                let semicolon_exists = self.consume(
+                    TokenType::Semicolon,
+                    &"Expect ';' after expression.".to_owned(),
+                );
+                match semicolon_exists {
+                    Ok(_) => return Some(Stmt::Expr(Box::new(e))),
+                    Err(e) => {
+                        Lox::parse_error(e);
+                        None
+                    }
+                }
+            }
+            Err(e) => {
+                Lox::parse_error(e);
+                None
+            }
+        }
+        // self.consume(
+        //     TokenType::Semicolon,
+        //     &"Expect ';' after expression.".to_owned(),
+        // );
+        // return Stmt::Expr(Box::new(expr));
     }
     fn expression(&mut self) -> Result<Expr, ParseError> {
         self.equality()

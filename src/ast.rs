@@ -1,6 +1,11 @@
 use crate::token::{Literal, Token};
 
 #[derive(Debug)]
+pub enum Stmt {
+    Expr(Box<Expr>),
+    Print(Box<Expr>),
+}
+#[derive(Debug)]
 pub enum Expr {
     // Literal Values
     Literal(Literal),

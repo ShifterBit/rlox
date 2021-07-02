@@ -1,4 +1,4 @@
-use crate::ast::Expr;
+use crate::ast::{Expr, Stmt};
 use crate::token::Literal;
 use crate::token::Token;
 use crate::token::TokenType;
@@ -21,12 +21,68 @@ impl Interpreter {
     pub fn new() -> Interpreter {
         Interpreter {}
     }
-    pub fn interpret(&self, lox: &mut Lox, expr: &Expr) -> Option<Literal> {
-        match self.evaluate(expr) {
-            Ok(expr) => Some(expr),
-            Err(e) => {
-                lox.runtime_error(e);
-                None
+
+    pub fn interpret(&self, statements: Vec<Box<Stmt>>) {
+        for statement in statements {
+            self.interpret_statement(statement);
+        }
+    }
+
+    fn interpret_statement(&self, statement: Box<Stmt>) -> Option<Literal> {
+        match *statement {
+            Stmt::Expr(expr) => {
+                let expression = self.evaluate(&expr);
+                match expression {
+                    Ok(l) => {
+                        match l.clone() {
+                            Literal::Bool(b) => {
+                                println!("{}", b);
+                            }
+                            Literal::Number(n) => {
+                                println!("{}", n);
+                            }
+                            Literal::String(s) => {
+                                println!("\"{}\"", s);
+                            }
+                            Literal::Nil => {
+                                println!("nil");
+                            }
+                        };
+                        // None
+                        Some(l)
+                    }
+                    Err(e) => {
+                        Lox::runtime_error(e);
+                        None
+                    }
+                }
+            }
+            Stmt::Print(expr) => {
+                let value = self.evaluate(&expr);
+                match value {
+                    Ok(l) => {
+                        match l {
+                            Literal::Bool(b) => {
+                                println!("{}", b);
+                            }
+                            Literal::Number(n) => {
+                                println!("{}", n);
+                            }
+                            Literal::String(s) => {
+                                println!("\"{}\"", s);
+                            }
+                            Literal::Nil => {
+                                println!("nil");
+                            }
+                        };
+                        // println!("{:?}", l);
+                        None
+                    }
+                    Err(e) => {
+                        Lox::runtime_error(e);
+                        None
+                    }
+                }
             }
         }
     }

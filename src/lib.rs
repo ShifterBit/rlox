@@ -13,17 +13,20 @@ use std::io;
 use std::process;
 use token::{Literal, Token, TokenType};
 
+static mut HAD_ERROR: bool = false;
+static mut HAD_RUNTIME_ERROR: bool = false;
+
 #[derive(Default)]
 pub struct Lox {
-    had_error: bool,
-    had_runtime_error: bool,
+    // had_error: bool,
+// had_runtime_error: bool,
 }
 
 impl Lox {
     pub fn new() -> Self {
         Lox {
-            had_error: false,
-            had_runtime_error: false,
+            // had_error: false,
+            // had_runtime_error: false,
         }
     }
 
@@ -42,11 +45,13 @@ impl Lox {
     fn run_file(&mut self, path: &String) {
         let file = fs::read_to_string(path).unwrap();
         self.run(&file);
-        if self.had_error {
-            process::exit(65);
-        }
-        if self.had_runtime_error {
-            process::exit(70);
+        unsafe {
+            if HAD_ERROR {
+                process::exit(65);
+            }
+            if HAD_RUNTIME_ERROR {
+                process::exit(70);
+            }
         }
     }
 
@@ -59,7 +64,9 @@ impl Lox {
                 break;
             }
             self.run(&line);
-            self.had_error = false;
+            unsafe {
+                HAD_ERROR = false;
+            }
         }
     }
 
@@ -67,38 +74,25 @@ impl Lox {
         let mut scanner: Scanner = Scanner::new(source.clone());
         let tokens: Vec<Token> = scanner.scan_tokens();
         let mut parser: Parser = Parser::new(tokens.clone());
-        let expression = parser.parse().unwrap();
-        if self.had_error {
-            return;
+        let expression = parser.parse();
+
+        unsafe {
+            if HAD_ERROR {
+                return;
+            }
         }
+
         let interpreter = Interpreter::new();
-        let l = interpreter.interpret(self, &expression);
-        match l {
-            Some(l) => match l {
-                Literal::Bool(b) => {
-                    println!("{}", b);
-                }
-                Literal::Number(n) => {
-                    println!("{}", n);
-                }
-                Literal::String(s) => {
-                    println!("\"{}\"", s);
-                }
-                Literal::Nil => {
-                    println!("nil");
-                }
-            },
-            None => {}
-        };
+        interpreter.interpret(expression);
     }
 
     fn error(line: i32, message: String) {
         Lox::report(line, "".to_owned(), message);
     }
 
-    fn runtime_error(&mut self, error: RuntimeError) {
+    fn runtime_error(error: RuntimeError) {
         println!("{} \n [line {}]", error.message, error.token.line);
-        self.had_runtime_error = true;
+        unsafe { HAD_RUNTIME_ERROR = true }
     }
 
     fn parse_error(error: ParseError) {
@@ -119,5 +113,8 @@ impl Lox {
             location = location,
             message = message
         );
+        unsafe {
+            HAD_ERROR = true;
+        }
     }
 }
