@@ -17,13 +17,15 @@ use crate::Lox;
 // exprStmt         -> expression ";" ;
 // printStmt        -> "print" expression ";" ;
 // -------- EXPRESSIONS --------
-// expression       -> equality ;
+// expression       -> assignment ;
+// assignment       -> IDENTIFIER "=" assignment
+//                   | equality ;
 // equality         -> comparison ( ("!=" | "==" ) comparison )* ;
 // comparison       -> term ( (">" | ">=" | "<=" | "<" ) term )* ;
 // unary            -> ( "-" | "!" ) unary | primary ;
 // term             -> factor ( ("-" | "+") factor)* ;
 // factor           -> unary ( ("/" | "*") unary)* ;
-// primary          ->  NUMBER | String | "true" | "false" | "nil" | "(" expression ")" |  ;
+// primary          ->  NUMBER | String | "true" | "false" | "nil" | "(" expression ")" | IDENTIFIER ;
 
 pub struct Parser {
     current: usize,
@@ -81,12 +83,14 @@ impl Parser {
         );
         Ok(Stmt::Var(name, Box::new(Some(initializer))))
     }
+
     fn statement(&mut self) -> Result<Stmt, ParseError> {
         match self.match_(&vec![TokenType::Print]) {
             true => self.print_statement(),
             _ => self.expression_statement(),
         }
     }
+
     fn print_statement(&mut self) -> Result<Stmt, ParseError> {
         let value = self.expression();
         match value {
@@ -121,7 +125,25 @@ impl Parser {
     }
 
     fn expression(&mut self) -> Result<Expr, ParseError> {
-        self.equality()
+        self.assignment()
+    }
+
+    fn assignment(&mut self) -> Result<Expr, ParseError> {
+        let expr = self.equality()?;
+
+        if self.match_(&vec![TokenType::Equal]) {
+            let equals = self.previous();
+            let value = self.assignment()?;
+            match expr {
+                Expr::Variable(t) => Ok(Expr::Assignment(t, Box::new(value))),
+                _ => Err(ParseError::new(
+                    equals,
+                    "Invalid assignment target.".to_owned(),
+                )),
+            }
+        } else {
+            Ok(expr)
+        }
     }
 
     fn equality(&mut self) -> Result<Expr, ParseError> {

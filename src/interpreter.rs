@@ -107,21 +107,26 @@ impl Interpreter {
         }
     }
 
-    fn evaluate(&self, expr: &Expr) -> Result<Literal, RuntimeError> {
+    fn evaluate(&mut self, expr: &Expr) -> Result<Literal, RuntimeError> {
         match expr {
             Expr::Literal(literal) => self.evaluate_literal(literal.to_owned()),
             Expr::Unary(op, e) => self.evaluate_unary(op.to_owned(), &e),
             Expr::Binary(lhs, op, rhs) => self.evaluate_binary(&lhs, op.to_owned(), &rhs),
             Expr::Grouping(e) => self.evaluate(&e),
             Expr::Variable(e) => self.environment.get(e.clone()),
+            Expr::Assignment(t, e) => {
+                let value = self.evaluate(&e)?;
+                self.environment.assign(t.to_owned(), value.clone())?;
+                Ok(value)
+            }
         }
     }
 
-    fn evaluate_literal(&self, expr: Literal) -> Result<Literal, RuntimeError> {
+    fn evaluate_literal(&mut self, expr: Literal) -> Result<Literal, RuntimeError> {
         Ok(expr)
     }
 
-    fn evaluate_unary(&self, op: Token, expr: &Expr) -> Result<Literal, RuntimeError> {
+    fn evaluate_unary(&mut self, op: Token, expr: &Expr) -> Result<Literal, RuntimeError> {
         let right = self.evaluate(expr)?;
 
         match op.token_type {
@@ -138,7 +143,7 @@ impl Interpreter {
     }
 
     fn evaluate_binary(
-        &self,
+        &mut self,
         left: &Expr,
         op: Token,
         right: &Expr,
@@ -247,7 +252,7 @@ impl Interpreter {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RuntimeError {
     pub token: Token,
     pub message: String,

@@ -12,6 +12,7 @@ pub enum Expr {
     Literal(Literal),
 
     // Compound Expressions
+    Assignment(Token, Box<Expr>),
     Binary(Box<Expr>, Token, Box<Expr>),
     Unary(Token, Box<Expr>),
     Grouping(Box<Expr>),
