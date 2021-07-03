@@ -4,6 +4,7 @@ use crate::token::{Literal, Token};
 pub enum Stmt {
     Expr(Box<Expr>),
     Print(Box<Expr>),
+    Var(Token, Box<Option<Expr>>),
 }
 #[derive(Debug)]
 pub enum Expr {
@@ -14,4 +15,5 @@ pub enum Expr {
     Binary(Box<Expr>, Token, Box<Expr>),
     Unary(Token, Box<Expr>),
     Grouping(Box<Expr>),
+    Variable(Token),
 }

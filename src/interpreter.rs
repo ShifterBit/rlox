@@ -1,4 +1,5 @@
 use crate::ast::{Expr, Stmt};
+use crate::environment::Environment;
 use crate::token::Literal;
 use crate::token::Token;
 use crate::token::TokenType;
@@ -15,20 +16,24 @@ pub enum Value {
     Nil,
 }
 
-pub struct Interpreter {}
+pub struct Interpreter {
+    environment: Environment,
+}
 
 impl Interpreter {
     pub fn new() -> Interpreter {
-        Interpreter {}
+        Interpreter {
+            environment: Environment::new(),
+        }
     }
 
-    pub fn interpret(&self, statements: Vec<Box<Stmt>>) {
+    pub fn interpret(&mut self, statements: Vec<Box<Stmt>>) {
         for statement in statements {
             self.interpret_statement(statement);
         }
     }
 
-    fn interpret_statement(&self, statement: Box<Stmt>) -> Option<Literal> {
+    fn interpret_statement(&mut self, statement: Box<Stmt>) -> Option<Literal> {
         match *statement {
             Stmt::Expr(expr) => {
                 let expression = self.evaluate(&expr);
@@ -84,6 +89,21 @@ impl Interpreter {
                     }
                 }
             }
+            Stmt::Var(name, initializer) => {
+                let mut value: Literal = Literal::Nil;
+                match *initializer {
+                    Some(e) => {
+                        let f = self.evaluate(&e);
+                        match f {
+                            Ok(e) => value = e,
+                            Err(e) => Lox::runtime_error(e),
+                        }
+                    }
+                    None => {}
+                }
+                self.environment.define(&name.lexeme, value);
+                None
+            }
         }
     }
 
@@ -93,6 +113,7 @@ impl Interpreter {
             Expr::Unary(op, e) => self.evaluate_unary(op.to_owned(), &e),
             Expr::Binary(lhs, op, rhs) => self.evaluate_binary(&lhs, op.to_owned(), &rhs),
             Expr::Grouping(e) => self.evaluate(&e),
+            Expr::Variable(e) => self.environment.get(e.clone()),
         }
     }
 

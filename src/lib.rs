@@ -1,4 +1,5 @@
 pub mod ast;
+pub mod environment;
 pub mod interpreter;
 pub mod parser;
 pub mod scanner;
@@ -82,7 +83,7 @@ impl Lox {
             }
         }
 
-        let interpreter = Interpreter::new();
+        let mut interpreter = Interpreter::new();
         interpreter.interpret(expression);
     }
 
@@ -108,7 +109,7 @@ impl Lox {
 
     fn report(line: i32, location: String, message: String) {
         eprintln!(
-            "[line {line} ] Error {location}: {message}",
+            "[line {line}] Error {location}: {message}",
             line = line,
             location = location,
             message = message

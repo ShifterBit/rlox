@@ -6,20 +6,24 @@ use crate::Lox;
 //
 //
 // -------- Program --------
-// program        -> statement* EOF
+// program          -> declaration* EOF
+//
+// -------- Declarations --------
+// declaration      -> varDeclaration
+//                   | statement ;
 // -------- Statements --------
 // statement        -> exprStmt
 //                   | printStmt
 // exprStmt         -> expression ";" ;
 // printStmt        -> "print" expression ";" ;
 // -------- EXPRESSIONS --------
-// expression     -> equality ;
-// equality       -> comparison ( ("!=" | "==" ) comparison )* ;
-// comparison     -> term ( (">" | ">=" | "<=" | "<" ) term )* ;
-// unary          -> ( "-" | "!" ) unary | primary ;
-// term           -> factor ( ("-" | "+") factor)* ;
-// factor         -> unary ( ("/" | "*") unary)* ;
-// primary        ->  NUMBER | String | "true" | "false" | "nil" | "(" expression ")" ;
+// expression       -> equality ;
+// equality         -> comparison ( ("!=" | "==" ) comparison )* ;
+// comparison       -> term ( (">" | ">=" | "<=" | "<" ) term )* ;
+// unary            -> ( "-" | "!" ) unary | primary ;
+// term             -> factor ( ("-" | "+") factor)* ;
+// factor           -> unary ( ("/" | "*") unary)* ;
+// primary          ->  NUMBER | String | "true" | "false" | "nil" | "(" expression ")" |  ;
 
 pub struct Parser {
     current: usize,
@@ -34,7 +38,7 @@ impl Parser {
     pub fn parse(&mut self) -> Vec<Box<Stmt>> {
         let mut statements: Vec<Box<Stmt>> = Vec::new();
         while !self.at_end() {
-            match self.statement() {
+            match self.declaration() {
                 Some(s) => statements.push(Box::new(s)),
                 None => {}
             }
@@ -42,35 +46,64 @@ impl Parser {
 
         return statements;
     }
-    fn statement(&mut self) -> Option<Stmt> {
+    fn declaration(&mut self) -> Option<Stmt> {
+        if self.match_(&vec![TokenType::Var]) {
+            match self.var_declaration() {
+                Ok(s) => Some(s),
+                Err(e) => {
+                    self.syncronize();
+                    Lox::parse_error(e);
+                    None
+                }
+            }
+        } else {
+            match self.statement() {
+                Ok(s) => Some(s),
+                Err(e) => {
+                    self.syncronize();
+                    Lox::parse_error(e);
+                    None
+                }
+            }
+        }
+    }
+
+    fn var_declaration(&mut self) -> Result<Stmt, ParseError> {
+        let name: Token =
+            self.consume(TokenType::Identifier, &"Expect variable name.".to_owned())?;
+        let mut initializer = Expr::Literal(Literal::Nil);
+        if self.match_(&vec![TokenType::Equal]) {
+            initializer = self.expression()?;
+        }
+        self.consume(
+            TokenType::Semicolon,
+            &"Expect ';' after variable declaration.".to_owned(),
+        );
+        Ok(Stmt::Var(name, Box::new(Some(initializer))))
+    }
+    fn statement(&mut self) -> Result<Stmt, ParseError> {
         match self.match_(&vec![TokenType::Print]) {
             true => self.print_statement(),
             _ => self.expression_statement(),
         }
     }
-    fn print_statement(&mut self) -> Option<Stmt> {
+    fn print_statement(&mut self) -> Result<Stmt, ParseError> {
         let value = self.expression();
         match value {
             Ok(e) => {
                 let semicolon_exists =
                     self.consume(TokenType::Semicolon, &"Expect ';' after value.".to_owned());
                 match semicolon_exists {
-                    Ok(_) => return Some(Stmt::Print(Box::new(e))),
-                    Err(e) => {
-                        Lox::parse_error(e);
-                        None
-                    }
+                    Ok(_) => Ok(Stmt::Print(Box::new(e))),
+                    Err(e) => Err(e),
                 }
             }
 
-            Err(e) => {
-                Lox::parse_error(e);
-                None
-            }
+            Err(e) => Err(e),
         }
     }
 
-    fn expression_statement(&mut self) -> Option<Stmt> {
+    fn expression_statement(&mut self) -> Result<Stmt, ParseError> {
         let expr = self.expression();
         match expr {
             Ok(e) => {
@@ -79,24 +112,14 @@ impl Parser {
                     &"Expect ';' after expression.".to_owned(),
                 );
                 match semicolon_exists {
-                    Ok(_) => return Some(Stmt::Expr(Box::new(e))),
-                    Err(e) => {
-                        Lox::parse_error(e);
-                        None
-                    }
+                    Ok(_) => Ok(Stmt::Expr(Box::new(e))),
+                    Err(e) => Err(e),
                 }
             }
-            Err(e) => {
-                Lox::parse_error(e);
-                None
-            }
+            Err(e) => Err(e),
         }
-        // self.consume(
-        //     TokenType::Semicolon,
-        //     &"Expect ';' after expression.".to_owned(),
-        // );
-        // return Stmt::Expr(Box::new(expr));
     }
+
     fn expression(&mut self) -> Result<Expr, ParseError> {
         self.equality()
     }
@@ -170,6 +193,10 @@ impl Parser {
 
         if self.match_(&vec![TokenType::Number, TokenType::String]) {
             return Ok(Expr::Literal(self.previous().literal.unwrap()));
+        }
+
+        if self.match_(&vec![TokenType::Identifier]) {
+            return Ok(Expr::Variable(self.previous()));
         }
 
         if self.match_(&vec![TokenType::LeftParen]) {
