@@ -12,23 +12,17 @@ use std::env;
 use std::fs;
 use std::io;
 use std::process;
-use token::{Literal, Token, TokenType};
+use token::{Token, TokenType};
 
 static mut HAD_ERROR: bool = false;
 static mut HAD_RUNTIME_ERROR: bool = false;
 
 #[derive(Default)]
-pub struct Lox {
-    // had_error: bool,
-// had_runtime_error: bool,
-}
+pub struct Lox {}
 
 impl Lox {
     pub fn new() -> Self {
-        Lox {
-            // had_error: false,
-            // had_runtime_error: false,
-        }
+        Lox {}
     }
 
     pub fn init(&mut self) {
@@ -82,7 +76,6 @@ impl Lox {
                 return;
             }
         }
-
         let mut interpreter = Interpreter::new();
         interpreter.interpret(expression);
     }

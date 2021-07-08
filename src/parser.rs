@@ -14,6 +14,8 @@ use crate::Lox;
 // -------- Statements --------
 // statement        -> exprStmt
 //                   | printStmt
+//                   | block ;
+// block            -> "{" declaration* "}" ;
 // exprStmt         -> expression ";" ;
 // printStmt        -> "print" expression ";" ;
 // -------- EXPRESSIONS --------
@@ -85,10 +87,27 @@ impl Parser {
     }
 
     fn statement(&mut self) -> Result<Stmt, ParseError> {
-        match self.match_(&vec![TokenType::Print]) {
-            true => self.print_statement(),
-            _ => self.expression_statement(),
+        if self.match_(&vec![TokenType::Print]) {
+            self.print_statement()
+        } else if self.match_(&vec![TokenType::LeftBrace]) {
+            self.block_statement()
+        } else {
+            self.expression_statement()
         }
+    }
+
+    fn block_statement(&mut self) -> Result<Stmt, ParseError> {
+        let mut statements: Vec<Stmt> = Vec::new();
+        loop {
+            if let Some(stmt) = self.declaration() {
+                statements.push(stmt);
+            }
+            if self.check(TokenType::RightBrace) || self.at_end() {
+                break;
+            }
+        }
+        self.consume(TokenType::RightBrace, &"Expect '}' after block.".to_owned());
+        Ok(Stmt::Block(statements))
     }
 
     fn print_statement(&mut self) -> Result<Stmt, ParseError> {

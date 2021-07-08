@@ -2,6 +2,7 @@ use crate::token::{Literal, Token};
 
 #[derive(Debug)]
 pub enum Stmt {
+    Block(Vec<Stmt>),
     Expr(Box<Expr>),
     Print(Box<Expr>),
     Var(Token, Box<Option<Expr>>),

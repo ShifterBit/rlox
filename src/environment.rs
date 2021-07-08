@@ -2,13 +2,16 @@ use crate::interpreter::RuntimeError;
 use crate::token::{Literal, Token};
 use std::collections::HashMap;
 
+#[derive(PartialEq, Clone)]
 pub struct Environment {
+    enclosing: Option<Box<Environment>>,
     values: HashMap<String, Literal>,
 }
 
 impl Environment {
-    pub fn new() -> Environment {
+    pub fn new(enclosing: Option<Box<Environment>>) -> Environment {
         Environment {
+            enclosing: enclosing,
             values: HashMap::new(),
         }
     }
@@ -21,10 +24,13 @@ impl Environment {
         if self.values.contains_key(&name.lexeme) {
             Ok(self.values.get(&name.lexeme).unwrap().clone())
         } else {
-            Err(RuntimeError::new(
-                name.clone(),
-                format!("Undefined variable {}.", &name.lexeme),
-            ))
+            match &self.enclosing {
+                Some(s) => return s.get(name),
+                None => Err(RuntimeError::new(
+                    name.clone(),
+                    format!("Undefined variable {}.", &name.lexeme),
+                )),
+            }
         }
     }
 
@@ -32,6 +38,9 @@ impl Environment {
         if self.values.contains_key(&name.lexeme) {
             self.values.insert(name.lexeme, value);
             Ok(())
+        } else if self.enclosing.is_some() {
+            let enclosing_env = self.enclosing.clone();
+            enclosing_env.unwrap().assign(name, value)
         } else {
             Err(RuntimeError::new(
                 name.clone(),

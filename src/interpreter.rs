@@ -23,7 +23,7 @@ pub struct Interpreter {
 impl Interpreter {
     pub fn new() -> Interpreter {
         Interpreter {
-            environment: Environment::new(),
+            environment: Environment::new(None),
         }
     }
 
@@ -61,6 +61,17 @@ impl Interpreter {
                         None
                     }
                 }
+            }
+            Stmt::Block(s) => {
+                let previous = self.environment.to_owned();
+                self.environment = Environment::new(Some(Box::new(self.environment.clone())));
+                for stmt in s {
+                    self.interpret_statement(Box::new(stmt));
+                }
+
+                self.environment = previous.to_owned();
+
+                None
             }
             Stmt::Print(expr) => {
                 let value = self.evaluate(&expr);
