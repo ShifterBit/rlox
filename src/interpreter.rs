@@ -36,7 +36,7 @@ impl Interpreter {
     fn interpret_statement(&mut self, statement: Box<Stmt>) -> Option<Literal> {
         match *statement {
             Stmt::Expr(expr) => {
-                let expression = self.evaluate(&expr);
+                let expression = self.evaluate(expr);
                 match expression {
                     Ok(l) => {
                         match l.clone() {
@@ -62,6 +62,15 @@ impl Interpreter {
                     }
                 }
             }
+            Stmt::If(condition, then_branch, else_branch) => {
+                if Interpreter::is_truthy(self.evaluate(condition).unwrap()) {
+                    self.interpret_statement(then_branch)
+                } else if else_branch.is_some() {
+                    self.interpret_statement(else_branch.unwrap())
+                } else {
+                    None
+                }
+            }
             Stmt::Block(s) => {
                 let previous = self.environment.to_owned();
                 self.environment = Environment::new(Some(Box::new(self.environment.clone())));
@@ -74,7 +83,7 @@ impl Interpreter {
                 None
             }
             Stmt::Print(expr) => {
-                let value = self.evaluate(&expr);
+                let value = self.evaluate(expr);
                 match value {
                     Ok(l) => {
                         match l {
@@ -104,7 +113,7 @@ impl Interpreter {
                 let mut value: Literal = Literal::Nil;
                 match *initializer {
                     Some(e) => {
-                        let f = self.evaluate(&e);
+                        let f = self.evaluate(Box::new(e));
                         match f {
                             Ok(e) => value = e,
                             Err(e) => Lox::runtime_error(e),
@@ -118,15 +127,15 @@ impl Interpreter {
         }
     }
 
-    fn evaluate(&mut self, expr: &Expr) -> Result<Literal, RuntimeError> {
-        match expr {
+    fn evaluate(&mut self, expr: Box<Expr>) -> Result<Literal, RuntimeError> {
+        match *expr {
             Expr::Literal(literal) => self.evaluate_literal(literal.to_owned()),
-            Expr::Unary(op, e) => self.evaluate_unary(op.to_owned(), &e),
-            Expr::Binary(lhs, op, rhs) => self.evaluate_binary(&lhs, op.to_owned(), &rhs),
-            Expr::Grouping(e) => self.evaluate(&e),
+            Expr::Unary(op, e) => self.evaluate_unary(op.to_owned(), e),
+            Expr::Binary(lhs, op, rhs) => self.evaluate_binary(lhs, op.to_owned(), rhs),
+            Expr::Grouping(e) => self.evaluate(e),
             Expr::Variable(e) => self.environment.get(e.clone()),
             Expr::Assignment(t, e) => {
-                let value = self.evaluate(&e)?;
+                let value = self.evaluate(e)?;
                 self.environment.assign(t.to_owned(), value.clone())?;
                 Ok(value)
             }
@@ -137,11 +146,11 @@ impl Interpreter {
         Ok(expr)
     }
 
-    fn evaluate_unary(&mut self, op: Token, expr: &Expr) -> Result<Literal, RuntimeError> {
+    fn evaluate_unary(&mut self, op: Token, expr: Box<Expr>) -> Result<Literal, RuntimeError> {
         let right = self.evaluate(expr)?;
 
         match op.token_type {
-            TokenType::Bang => Ok(Literal::Bool(self.is_truthy(&right))),
+            TokenType::Bang => Ok(Literal::Bool(Interpreter::is_truthy(right))),
             TokenType::Minus => match right {
                 Literal::Number(f) => Ok(Literal::Number(f * -1 as f64)),
                 _ => Err(RuntimeError::new(
@@ -155,9 +164,9 @@ impl Interpreter {
 
     fn evaluate_binary(
         &mut self,
-        left: &Expr,
+        left: Box<Expr>,
         op: Token,
-        right: &Expr,
+        right: Box<Expr>,
     ) -> Result<Literal, RuntimeError> {
         let lhs: Literal = self.evaluate(left)?;
         let rhs: Literal = self.evaluate(right)?;
@@ -183,6 +192,16 @@ impl Interpreter {
                     op,
                     "Operands must be numbers.".to_owned(),
                 )),
+            },
+            TokenType::EqualEqual => match (lhs, rhs) {
+                (Literal::Number(lhs), Literal::Number(rhs)) => Ok(Literal::Bool(lhs == rhs)),
+                (Literal::String(lhs), Literal::String(rhs)) => Ok(Literal::Bool(lhs == rhs)),
+                (Literal::String(lhs), Literal::Number(rhs)) => Ok(Literal::Bool(false)),
+                (Literal::Number(lhs), Literal::String(rhs)) => Ok(Literal::Bool(false)),
+                (Literal::Bool(lhs), Literal::Bool(rhs)) => Ok(Literal::Bool(lhs == rhs)),
+                (Literal::Nil, Literal::Nil) => Ok(Literal::Bool(true)),
+                (Literal::Bool(lhs), Literal::Bool(rhs)) => Ok(Literal::Bool(lhs == rhs)),
+                _ => Ok(Literal::Bool(false)),
             },
             TokenType::Less => match (lhs, rhs) {
                 (Literal::Number(lhs), Literal::Number(rhs)) => Ok(Literal::Bool(lhs < rhs)),
@@ -246,10 +265,10 @@ impl Interpreter {
         }
     }
 
-    fn is_truthy(&self, value: &Literal) -> bool {
+    fn is_truthy(value: Literal) -> bool {
         match value {
             Literal::Nil => false,
-            Literal::Bool(b) => *b,
+            Literal::Bool(b) => b,
             _ => true,
         }
     }

@@ -6,6 +6,7 @@ pub enum Stmt {
     Expr(Box<Expr>),
     Print(Box<Expr>),
     Var(Token, Box<Option<Expr>>),
+    If(Box<Expr>, Box<Stmt>, Option<Box<Stmt>>),
 }
 #[derive(Debug)]
 pub enum Expr {
