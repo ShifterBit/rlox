@@ -130,6 +130,19 @@ impl Interpreter {
     fn evaluate(&mut self, expr: Box<Expr>) -> Result<Literal, RuntimeError> {
         match *expr {
             Expr::Literal(literal) => self.evaluate_literal(literal.to_owned()),
+            Expr::Logical(lhs, op, rhs) => {
+                let left = self.evaluate(lhs)?;
+                if op.token_type == TokenType::Or {
+                    if Interpreter::is_truthy(left.clone()) {
+                        return Ok(left);
+                    }
+                } else {
+                    if !Interpreter::is_truthy(left.clone()) {
+                        return Ok(left);
+                    }
+                }
+                self.evaluate(rhs)
+            }
             Expr::Unary(op, e) => self.evaluate_unary(op.to_owned(), e),
             Expr::Binary(lhs, op, rhs) => self.evaluate_binary(lhs, op.to_owned(), rhs),
             Expr::Grouping(e) => self.evaluate(e),

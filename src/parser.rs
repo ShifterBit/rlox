@@ -21,7 +21,9 @@ use crate::Lox;
 // -------- EXPRESSIONS --------
 // expression       -> assignment ;
 // assignment       -> IDENTIFIER "=" assignment
-//                   | equality ;
+//                   | logic_or ;
+// logic_or         -> logic_and ("or" logic_and)* ;
+// logic_and        -> equality ("or" equality)* ;
 // equality         -> comparison ( ("!=" | "==" ) comparison )* ;
 // comparison       -> term ( (">" | ">=" | "<=" | "<" ) term )* ;
 // unary            -> ( "-" | "!" ) unary | primary ;
@@ -171,7 +173,7 @@ impl Parser {
     }
 
     fn assignment(&mut self) -> Result<Expr, ParseError> {
-        let expr = self.equality()?;
+        let expr = self.or()?;
 
         if self.match_(&vec![TokenType::Equal]) {
             let equals = self.previous();
@@ -186,6 +188,28 @@ impl Parser {
         } else {
             Ok(expr)
         }
+    }
+
+    fn or(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.and()?;
+        while self.match_(&vec![TokenType::Or]) {
+            let operator: Token = self.previous();
+            let right: Expr = self.and()?;
+            expr = Expr::Logical(Box::new(expr), operator, Box::new(right))
+        }
+
+        Ok(expr)
+    }
+
+    fn and(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.equality()?;
+        while self.match_(&vec![TokenType::Or]) {
+            let operator: Token = self.previous();
+            let right: Expr = self.equality()?;
+            expr = Expr::Logical(Box::new(expr), operator, Box::new(right))
+        }
+
+        Ok(expr)
     }
 
     fn equality(&mut self) -> Result<Expr, ParseError> {
