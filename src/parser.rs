@@ -13,6 +13,7 @@ use crate::Lox;
 //                   | statement ;
 // -------- Statements --------
 // statement        -> exprStmt
+//                   | ifStmt
 //                   | printStmt
 //                   | block ;
 // block            -> "{" declaration* "}" ;
