@@ -1,17 +1,26 @@
 use crate::interpreter::RuntimeError;
 use crate::token::{Literal, Token};
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::rc::Rc;
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Clone, Debug, Default)]
 pub struct Environment {
-    enclosing: Option<Box<Environment>>,
-    values: HashMap<String, Literal>,
+    pub enclosing: Option<Rc<RefCell<Environment>>>,
+    pub values: HashMap<String, Literal>,
 }
 
 impl Environment {
-    pub fn new(enclosing: Option<Box<Environment>>) -> Environment {
+    pub fn new() -> Environment {
         Environment {
-            enclosing: enclosing,
+            enclosing: None,
+            values: HashMap::default(),
+        }
+    }
+
+    pub fn from(enclosing: Environment) -> Environment {
+        Environment {
+            enclosing: Some(Rc::new(RefCell::new(enclosing))),
             values: HashMap::new(),
         }
     }
@@ -22,25 +31,22 @@ impl Environment {
 
     pub fn get(&self, name: Token) -> Result<Literal, RuntimeError> {
         if self.values.contains_key(&name.lexeme) {
-            Ok(self.values.get(&name.lexeme).unwrap().clone())
+            Ok(self.values.get(&name.lexeme).unwrap().to_owned())
+        } else if self.enclosing.is_some() {
+            self.enclosing.as_ref().unwrap().borrow().get(name)
         } else {
-            match &self.enclosing {
-                Some(s) => return s.get(name),
-                None => Err(RuntimeError::new(
-                    name.clone(),
-                    format!("Undefined variable {}.", &name.lexeme),
-                )),
-            }
+            Err(RuntimeError::new(
+                name.clone(),
+                format!("Undefined variable {}.", &name.lexeme),
+            ))
         }
     }
-
     pub fn assign(&mut self, name: Token, value: Literal) -> Result<(), RuntimeError> {
         if self.values.contains_key(&name.lexeme) {
             self.values.insert(name.lexeme, value);
             Ok(())
         } else if self.enclosing.is_some() {
-            let enclosing_env = self.enclosing.clone();
-            enclosing_env.unwrap().assign(name, value)
+            self.enclosing.as_mut().unwrap().borrow_mut().assign(name, value )
         } else {
             Err(RuntimeError::new(
                 name.clone(),

@@ -14,6 +14,7 @@ use crate::Lox;
 // -------- Statements --------
 // statement        -> exprStmt
 //                   | ifStmt
+//                   | whileStmt
 //                   | printStmt
 //                   | block ;
 // block            -> "{" declaration* "}" ;
@@ -94,11 +95,24 @@ impl Parser {
             self.if_statement()
         } else if self.match_(&vec![TokenType::Print]) {
             self.print_statement()
+        } else if self.match_(&vec![TokenType::While]) {
+            self.while_statement()
         } else if self.match_(&vec![TokenType::LeftBrace]) {
             self.block_statement()
         } else {
             self.expression_statement()
         }
+    }
+
+    fn while_statement(&mut self) -> Result<Stmt, ParseError> {
+        self.consume(TokenType::LeftParen, &"Expect '(' after 'while'".to_owned());
+        let condition = self.expression()?;
+        self.consume(
+            TokenType::RightParen,
+            &"Expect ')' after 'condition'".to_owned(),
+        );
+        let body = self.statement()?;
+        Ok(Stmt::While(Box::new(condition), Box::new(body)))
     }
 
     fn if_statement(&mut self) -> Result<Stmt, ParseError> {

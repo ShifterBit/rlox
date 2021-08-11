@@ -1,14 +1,15 @@
 use crate::token::{Literal, Token};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Stmt {
     Block(Vec<Stmt>),
     Expr(Box<Expr>),
     Print(Box<Expr>),
     Var(Token, Box<Option<Expr>>),
     If(Box<Expr>, Box<Stmt>, Option<Box<Stmt>>),
+    While(Box<Expr>, Box<Stmt>),
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expr {
     // Literal Values
     Literal(Literal),

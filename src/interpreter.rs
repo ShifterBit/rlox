@@ -23,44 +23,53 @@ pub struct Interpreter {
 impl Interpreter {
     pub fn new() -> Interpreter {
         Interpreter {
-            environment: Environment::new(None),
+            environment: Environment::new(),
         }
     }
 
     pub fn interpret(&mut self, statements: Vec<Box<Stmt>>) {
         for statement in statements {
-            self.interpret_statement(statement);
-        }
+           self.interpret_statement(statement);
+       }
     }
 
-    fn interpret_statement(&mut self, statement: Box<Stmt>) -> Option<Literal> {
+    fn interpret_statement(
+        &mut self,
+        statement: Box<Stmt>,
+    ) -> Result<Option<Literal>, RuntimeError> {
         match *statement {
             Stmt::Expr(expr) => {
                 let expression = self.evaluate(expr);
                 match expression {
                     Ok(l) => {
-                        match l.clone() {
-                            Literal::Bool(b) => {
-                                println!("{}", b);
-                            }
-                            Literal::Number(n) => {
-                                println!("{}", n);
-                            }
-                            Literal::String(s) => {
-                                println!("\"{}\"", s);
-                            }
-                            Literal::Nil => {
-                                println!("nil");
-                            }
-                        };
+                        // match l.clone() {
+                        //     Literal::Bool(b) => {
+                        //         println!("{}", b);
+                        //     }
+                        //     Literal::Number(n) => {
+                        //         println!("{}", n);
+                        //     }
+                        //     Literal::String(s) => {
+                        //         println!("\"{}\"", s);
+                        //     }
+                        //     Literal::Nil => {
+                        //         println!("nil");
+                        //     }
+                        // };
                         // None
-                        Some(l)
+                        Ok(Some(l))
                     }
                     Err(e) => {
                         Lox::runtime_error(e);
-                        None
+                        Ok(None)
                     }
                 }
+            }
+            Stmt::While(condition, body) => {
+                while Interpreter::is_truthy(self.evaluate(condition.clone())?) {
+                    self.interpret_statement(body.to_owned())?;
+                }
+                Ok(None)
             }
             Stmt::If(condition, then_branch, else_branch) => {
                 if Interpreter::is_truthy(self.evaluate(condition).unwrap()) {
@@ -68,19 +77,20 @@ impl Interpreter {
                 } else if else_branch.is_some() {
                     self.interpret_statement(else_branch.unwrap())
                 } else {
-                    None
+                    Ok(None)
                 }
             }
             Stmt::Block(s) => {
-                let previous = self.environment.to_owned();
-                self.environment = Environment::new(Some(Box::new(self.environment.clone())));
-                for stmt in s {
-                    self.interpret_statement(Box::new(stmt));
+                self.environment = Environment::from(self.environment.clone());
+                for statement in s.iter() {
+                    self.interpret_statement(Box::new(statement.clone())).unwrap();
                 }
 
-                self.environment = previous.to_owned();
+                if let Some(enclosing) = self.environment.enclosing.clone() {
+                    self.environment = enclosing.clone().take();
+                }
+                Ok(None)
 
-                None
             }
             Stmt::Print(expr) => {
                 let value = self.evaluate(expr);
@@ -101,11 +111,11 @@ impl Interpreter {
                             }
                         };
                         // println!("{:?}", l);
-                        None
+                        Ok(None)
                     }
                     Err(e) => {
                         Lox::runtime_error(e);
-                        None
+                        Ok(None)
                     }
                 }
             }
@@ -122,7 +132,7 @@ impl Interpreter {
                     None => {}
                 }
                 self.environment.define(&name.lexeme, value);
-                None
+                Ok(None)
             }
         }
     }
@@ -146,10 +156,12 @@ impl Interpreter {
             Expr::Unary(op, e) => self.evaluate_unary(op.to_owned(), e),
             Expr::Binary(lhs, op, rhs) => self.evaluate_binary(lhs, op.to_owned(), rhs),
             Expr::Grouping(e) => self.evaluate(e),
-            Expr::Variable(e) => self.environment.get(e.clone()),
+            Expr::Variable(e) => self.environment.get(e),
             Expr::Assignment(t, e) => {
                 let value = self.evaluate(e)?;
-                self.environment.assign(t.to_owned(), value.clone())?;
+                self.environment
+                    .assign(t, value.clone())
+                    .unwrap();
                 Ok(value)
             }
         }
@@ -209,11 +221,10 @@ impl Interpreter {
             TokenType::EqualEqual => match (lhs, rhs) {
                 (Literal::Number(lhs), Literal::Number(rhs)) => Ok(Literal::Bool(lhs == rhs)),
                 (Literal::String(lhs), Literal::String(rhs)) => Ok(Literal::Bool(lhs == rhs)),
-                (Literal::String(lhs), Literal::Number(rhs)) => Ok(Literal::Bool(false)),
-                (Literal::Number(lhs), Literal::String(rhs)) => Ok(Literal::Bool(false)),
+                (Literal::String(_), Literal::Number(_)) => Ok(Literal::Bool(false)),
+                (Literal::Number(_), Literal::String(_)) => Ok(Literal::Bool(false)),
                 (Literal::Bool(lhs), Literal::Bool(rhs)) => Ok(Literal::Bool(lhs == rhs)),
                 (Literal::Nil, Literal::Nil) => Ok(Literal::Bool(true)),
-                (Literal::Bool(lhs), Literal::Bool(rhs)) => Ok(Literal::Bool(lhs == rhs)),
                 _ => Ok(Literal::Bool(false)),
             },
             TokenType::Less => match (lhs, rhs) {
