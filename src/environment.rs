@@ -46,7 +46,11 @@ impl Environment {
             self.values.insert(name.lexeme, value);
             Ok(())
         } else if self.enclosing.is_some() {
-            self.enclosing.as_mut().unwrap().borrow_mut().assign(name, value )
+            self.enclosing
+                .as_mut()
+                .unwrap()
+                .borrow_mut()
+                .assign(name, value)
         } else {
             Err(RuntimeError::new(
                 name.clone(),

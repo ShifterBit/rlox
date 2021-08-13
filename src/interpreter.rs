@@ -29,8 +29,8 @@ impl Interpreter {
 
     pub fn interpret(&mut self, statements: Vec<Box<Stmt>>) {
         for statement in statements {
-           self.interpret_statement(statement);
-       }
+            self.interpret_statement(statement);
+        }
     }
 
     fn interpret_statement(
@@ -71,6 +71,7 @@ impl Interpreter {
                 }
                 Ok(None)
             }
+
             Stmt::If(condition, then_branch, else_branch) => {
                 if Interpreter::is_truthy(self.evaluate(condition).unwrap()) {
                     self.interpret_statement(then_branch)
@@ -83,14 +84,14 @@ impl Interpreter {
             Stmt::Block(s) => {
                 self.environment = Environment::from(self.environment.clone());
                 for statement in s.iter() {
-                    self.interpret_statement(Box::new(statement.clone())).unwrap();
+                    self.interpret_statement(Box::new(statement.clone()))
+                        .unwrap();
                 }
 
                 if let Some(enclosing) = self.environment.enclosing.clone() {
                     self.environment = enclosing.clone().take();
                 }
                 Ok(None)
-
             }
             Stmt::Print(expr) => {
                 let value = self.evaluate(expr);
@@ -110,7 +111,6 @@ impl Interpreter {
                                 println!("nil");
                             }
                         };
-                        // println!("{:?}", l);
                         Ok(None)
                     }
                     Err(e) => {
@@ -159,9 +159,7 @@ impl Interpreter {
             Expr::Variable(e) => self.environment.get(e),
             Expr::Assignment(t, e) => {
                 let value = self.evaluate(e)?;
-                self.environment
-                    .assign(t, value.clone())
-                    .unwrap();
+                self.environment.assign(t, value.clone()).unwrap();
                 Ok(value)
             }
         }
@@ -272,36 +270,11 @@ impl Interpreter {
         }
     }
 
-    fn stringify(value: &Literal) -> String {
-        match value {
-            Literal::Nil => "nil".to_owned(),
-            Literal::Number(f) => match f {
-                f if f - f.floor() == 0.0 => {
-                    let mut float = f.to_string();
-                    float.pop();
-                    float.pop();
-                    float
-                }
-                _ => f.to_string(),
-            },
-            Literal::String(s) => s.to_owned(),
-            Literal::Bool(b) => b.to_string(),
-        }
-    }
-
     fn is_truthy(value: Literal) -> bool {
         match value {
             Literal::Nil => false,
             Literal::Bool(b) => b,
             _ => true,
-        }
-    }
-
-    fn is_equal(lhs: &Literal, rhs: &Literal) -> bool {
-        match (lhs, rhs) {
-            (Literal::Nil, Literal::Nil) => true,
-            (Literal::Nil, _) => false,
-            _ => lhs.eq(&rhs),
         }
     }
 }
