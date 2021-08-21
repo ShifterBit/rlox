@@ -29,7 +29,7 @@ impl Interpreter {
 
     pub fn interpret(&mut self, statements: Vec<Box<Stmt>>) {
         for statement in statements {
-            self.interpret_statement(statement);
+            self.interpret_statement(statement).unwrap();
         }
     }
 

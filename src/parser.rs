@@ -86,7 +86,7 @@ impl Parser {
         self.consume(
             TokenType::Semicolon,
             &"Expect ';' after variable declaration.".to_owned(),
-        );
+        )?;
         Ok(Stmt::Var(name, Box::new(Some(initializer))))
     }
 
@@ -107,19 +107,19 @@ impl Parser {
     }
 
     fn while_statement(&mut self) -> Result<Stmt, ParseError> {
-        self.consume(TokenType::LeftParen, &"Expect '(' after 'while'.".to_owned());
+        self.consume(TokenType::LeftParen, &"Expect '(' after 'while'.".to_owned())?;
         let condition = self.expression()?;
         self.consume(
             TokenType::RightParen,
             &"Expect ')' after 'condition'".to_owned(),
-        );
+        )?;
         let body = self.statement()?;
         Ok(Stmt::While(Box::new(condition), Box::new(body)))
     }
 
     fn for_statement(&mut self) -> Result<Stmt, ParseError> {
-        self.consume(TokenType::LeftParen, &"Expect '(' after 'for'.".to_owned());
-        let mut initializer: Option<Stmt>;
+        self.consume(TokenType::LeftParen, &"Expect '(' after 'for'.".to_owned())?;
+        let initializer: Option<Stmt>;
 
         if self.match_(&vec![TokenType::Semicolon]) {
             initializer = None;
@@ -134,14 +134,14 @@ impl Parser {
             condition = Some(self.expression()?);
         }
 
-        self.consume(TokenType::Semicolon, &"Expect ';' after loop condition.".to_owned());
+        self.consume(TokenType::Semicolon, &"Expect ';' after loop condition.".to_owned())?;
 
         let mut increment = None;
         if !self.check(TokenType::RightParen) {
             increment = Some(self.expression()?);
         }
 
-        self.consume(TokenType::RightParen, &"Expect ')' after for clauses.".to_owned());
+        self.consume(TokenType::RightParen, &"Expect ')' after for clauses.".to_owned())?;
         let mut body = self.statement()?;
 
         if increment.is_some() {
@@ -161,12 +161,12 @@ impl Parser {
     }
 
     fn if_statement(&mut self) -> Result<Stmt, ParseError> {
-        self.consume(TokenType::LeftParen, &"Expect '(' after 'if'.".to_owned());
+        self.consume(TokenType::LeftParen, &"Expect '(' after 'if'.".to_owned())?;
         let condition = self.expression().unwrap();
         self.consume(
             TokenType::RightParen,
             &"Expect ')' after condition.".to_owned(),
-        );
+        )?;
 
         let then_branch = self.statement()?;
         if self.match_(&vec![TokenType::Else]) {
@@ -191,7 +191,7 @@ impl Parser {
                 break;
             }
         }
-        self.consume(TokenType::RightBrace, &"Expect '}' after block.".to_owned());
+        self.consume(TokenType::RightBrace, &"Expect '}' after block.".to_owned())?;
         Ok(Stmt::Block(statements))
     }
 
