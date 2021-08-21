@@ -41,6 +41,7 @@ impl Environment {
             ))
         }
     }
+
     pub fn assign(&mut self, name: Token, value: Literal) -> Result<(), RuntimeError> {
         if self.values.contains_key(&name.lexeme) {
             self.values.insert(name.lexeme, value);

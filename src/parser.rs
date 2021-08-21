@@ -93,6 +93,8 @@ impl Parser {
     fn statement(&mut self) -> Result<Stmt, ParseError> {
         if self.match_(&vec![TokenType::If]) {
             self.if_statement()
+        } else if self.match_(&vec![TokenType::For]) {
+            self.for_statement()
         } else if self.match_(&vec![TokenType::Print]) {
             self.print_statement()
         } else if self.match_(&vec![TokenType::While]) {
@@ -105,7 +107,7 @@ impl Parser {
     }
 
     fn while_statement(&mut self) -> Result<Stmt, ParseError> {
-        self.consume(TokenType::LeftParen, &"Expect '(' after 'while'".to_owned());
+        self.consume(TokenType::LeftParen, &"Expect '(' after 'while'.".to_owned());
         let condition = self.expression()?;
         self.consume(
             TokenType::RightParen,
@@ -113,6 +115,49 @@ impl Parser {
         );
         let body = self.statement()?;
         Ok(Stmt::While(Box::new(condition), Box::new(body)))
+    }
+
+    fn for_statement(&mut self) -> Result<Stmt, ParseError> {
+        self.consume(TokenType::LeftParen, &"Expect '(' after 'for'.".to_owned());
+        let mut initializer: Option<Stmt>;
+
+        if self.match_(&vec![TokenType::Semicolon]) {
+            initializer = None;
+        } else if self.match_(&vec![TokenType::Var]) {
+            initializer = Some(self.var_declaration()?);
+        } else {
+            initializer = Some(self.expression_statement()?); 
+        }
+
+        let mut condition = None;
+        if !self.check(TokenType::Semicolon) {
+            condition = Some(self.expression()?);
+        }
+
+        self.consume(TokenType::Semicolon, &"Expect ';' after loop condition.".to_owned());
+
+        let mut increment = None;
+        if !self.check(TokenType::RightParen) {
+            increment = Some(self.expression()?);
+        }
+
+        self.consume(TokenType::RightParen, &"Expect ')' after for clauses.".to_owned());
+        let mut body = self.statement()?;
+
+        if increment.is_some() {
+            body = Stmt::Block(vec![body, Stmt::Expr(Box::new(increment.unwrap()))])
+        }
+
+        if condition.is_none() {
+            condition = Some(Expr::Literal(Literal::Bool(true)));
+            }
+
+        body = Stmt::While(Box::new(condition.unwrap()), Box::new(body));
+
+        if initializer.is_some() {
+            body = Stmt::Block(vec![initializer.unwrap(), body]);
+            }
+        Ok(body)
     }
 
     fn if_statement(&mut self) -> Result<Stmt, ParseError> {
